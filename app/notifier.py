@@ -4,8 +4,27 @@ Notification module for sending alerts via ntfy.sh
 
 import logging
 import requests
+import unicodedata
 
 logger = logging.getLogger(__name__)
+
+
+def remove_accents(text):
+    """
+    Remove accents from text
+    
+    Args:
+        text: String with accents
+        
+    Returns:
+        String without accents
+    """
+    if not text:
+        return text
+    
+    # Normalize to NFD (decomposed form) and filter out combining marks
+    nfd = unicodedata.normalize('NFD', text)
+    return ''.join(char for char in nfd if unicodedata.category(char) != 'Mn')
 
 
 def send_notification(listings, topic):
@@ -23,20 +42,24 @@ def send_notification(listings, topic):
         logger.warning("No listings to notify")
         return
     
-    # Format message with all listings
+    # Format message with all listings using Markdown format
+    # ntfy.sh supports Markdown including hyperlinks
     message_lines = [
-        f"🚗 Novos Anúncios OLX - {len(listings)} veículo{'s' if len(listings) != 1 else ''}",
+        f"Novos Anuncios OLX - {len(listings)} veiculo{'s' if len(listings) != 1 else ''}",
         ""
     ]
     
     for i, listing in enumerate(listings, 1):
-        message_lines.append(f"{i}. {listing['title']}")
+        # Create hyperlink using Markdown format: [text](url)
+        title_link = f"[{listing['title']}]({listing['url']})"
+        
+        message_lines.append(f"{i}. {title_link}")
         message_lines.append(f"   {listing['price']}")
-        message_lines.append(f"   {listing['url']}")
         
         # Add location if available
         if listing.get('location'):
-            message_lines.append(f"   📍 {listing['location']}")
+            location_no_accents = remove_accents(listing['location'])
+            message_lines.append(f"   {location_no_accents}")
         
         message_lines.append("")  # Blank line between listings
     
@@ -52,9 +75,10 @@ def send_notification(listings, topic):
             ntfy_url,
             data=message.encode('utf-8'),
             headers={
-                "Title": f"Novos Veículos OLX ({len(listings)})",
+                "Title": "Novos Veiculos OLX",
                 "Tags": "car,olx",
-                "Priority": "default"
+                "Priority": "default",
+                "Markdown": "yes"  # Enable Markdown formatting
             },
             timeout=30
         )
