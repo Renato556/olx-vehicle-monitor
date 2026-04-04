@@ -16,28 +16,40 @@ MAX_MESSAGE_BYTES = 3800
 
 def remove_accents(text):
     """
-    Remove accents from text
+    Remove accents from text and characters that might break Markdown links
     
     Args:
         text: String with accents
         
     Returns:
-        String without accents
+        String without accents and problematic characters
     """
     if not text:
         return text
     
     # Normalize to NFD (decomposed form) and filter out combining marks
     nfd = unicodedata.normalize('NFD', text)
-    return ''.join(char for char in nfd if unicodedata.category(char) != 'Mn')
+    text = ''.join(char for char in nfd if unicodedata.category(char) != 'Mn')
+    
+    # Remove characters that can break Markdown [text](url) structure
+    # like [ and ] inside the title itself
+    text = text.replace('[', '(').replace(']', ')')
+    
+    return text
 
 
 def format_listing(i, listing):
     """
     Format a single listing into a string block
     """
+    # Remove accents and problematic chars from title
+    clean_title = remove_accents(listing['title'])
+    
+    # Ensure URL is clean (no spaces or weird chars that might have survived)
+    clean_url = listing['url'].replace(' ', '%20')
+    
     # Create hyperlink using Markdown format: [text](url)
-    title_link = f"[{listing['title']}]({listing['url']})"
+    title_link = f"[{clean_title}]({clean_url})"
     
     lines = []
     lines.append(f"{i}. {title_link}")
