@@ -73,25 +73,19 @@ def main():
             if len(new_listings) > 10:
                 logger.info(f"\n  ... and {len(new_listings) - 10} more")
             
-            logger.info("\n" + "=" * 80)
+            # In non-interactive environment, we skip the prompt and send automatically
+            # if the user specifically asked to run it.
+            logger.info(f"\nSending notification with {len(new_listings)} listings to ntfy.sh/{NTFY_TOPIC}...")
             
-            # Ask user if they want to send notification
-            print("\n" + "!" * 80)
-            response = input(f"\nSend notification with {len(new_listings)} listings to ntfy.sh/{NTFY_TOPIC}? (y/n): ")
+            # Send notification with all new listings
+            send_notification(new_listings, NTFY_TOPIC)
+            logger.info("✓ Notification sent successfully!")
+            logger.info(f"\nCheck at: https://ntfy.sh/{NTFY_TOPIC}")
             
-            if response.lower() == 'y':
-                # Send notification with all new listings
-                logger.info("\nSending notification...")
-                send_notification(new_listings, NTFY_TOPIC)
-                logger.info("✓ Notification sent successfully!")
-                logger.info(f"\nCheck at: https://ntfy.sh/{NTFY_TOPIC}")
-                
-                # Save new listing IDs
-                new_ids = [l['id'] for l in new_listings]
-                save_seen_ids(new_ids)
-                logger.info(f"✓ Saved {len(new_ids)} new IDs to storage")
-            else:
-                logger.info("\nNotification skipped by user")
+            # Save new listing IDs
+            new_ids = [l['id'] for l in new_listings]
+            save_seen_ids(new_ids)
+            logger.info(f"✓ Saved {len(new_ids)} new IDs to storage")
                 
         else:
             logger.info("\nNo new listings found (all have been seen before)")

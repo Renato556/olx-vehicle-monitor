@@ -35,6 +35,12 @@ def remove_accents(text):
     # like [ and ] inside the title itself
     text = text.replace('[', '(').replace(']', ')')
     
+    # Replace ( and ) with spaces as they also break some Markdown parsers when inside the label
+    text = text.replace('(', ' ').replace(')', ' ')
+    
+    # Clean up double spaces
+    text = ' '.join(text.split())
+    
     return text
 
 
@@ -85,15 +91,12 @@ def send_notification(listings, topic):
     current_batch = []
     current_batch_size = 0
     
-    # Header templates
-    header_template = "Novos Anuncios OLX - {info}\n\n"
-    
     for i, listing in enumerate(listings, 1):
         listing_text = format_listing(i, listing)
         listing_size = len(listing_text.encode('utf-8'))
         
         # If adding this listing exceeds the limit, start a new batch
-        # We account for the header size roughly here
+        # We account for the header size roughly here (around 200 bytes)
         if current_batch_size + listing_size > MAX_MESSAGE_BYTES - 200:
             if current_batch:
                 batches.append(current_batch)
@@ -125,15 +128,17 @@ def send_notification(listings, topic):
             
             logger.info(f"Sending batch {batch_num}/{total_batches} ({len(message.encode('utf-8'))} bytes)")
             
+            headers = {
+                "Title": remove_accents(title),
+                "Tags": "car,olx",
+                "Priority": "default",
+                "X-Markdown": "yes"  # Using X-Markdown for maximum compatibility
+            }
+            
             response = requests.post(
                 ntfy_url,
                 data=message.encode('utf-8'),
-                headers={
-                    "Title": title,
-                    "Tags": "car,olx",
-                    "Priority": "default",
-                    "Markdown": "yes"
-                },
+                headers=headers,
                 timeout=30
             )
             response.raise_for_status()
