@@ -73,24 +73,28 @@ Para receber as notificações no seu dispositivo:
 
 ### Formato das Notificações
 
-```
-🚗 Novos Anúncios OLX - 3 veículos
+As notificações usam Markdown com hyperlinks clicáveis e texto sem acentos:
 
-1. Fiat Uno 2015
+```
+Novos Anuncios OLX - 3 veiculos
+
+1. [Fiat Uno Vivace 1.0 2015](https://mg.olx.com.br/...)
    R$ 25.000
-   https://mg.olx.com.br/...
-   📍 Belo Horizonte, Centro - DDD 31
+   Belo Horizonte, Centro - DDD 31
 
-2. VW Gol 2018
+2. [VW Gol 1.6 Total Flex 2018](https://mg.olx.com.br/...)
    R$ 22.500
-   https://mg.olx.com.br/...
-   📍 Contagem - DDD 31
+   Contagem - DDD 31
 
-3. Chevrolet Onix 2020
+3. [Chevrolet Onix 1.0 2020](https://mg.olx.com.br/...)
    R$ 24.800
-   https://mg.olx.com.br/...
-   📍 Betim - DDD 31
+   Betim - DDD 31
 ```
+
+**Observações:**
+- Os títulos são links clicáveis (formato Markdown)
+- Texto sem acentos para melhor compatibilidade
+- Clique no título para abrir o anúncio diretamente
 
 ## Configuração
 
