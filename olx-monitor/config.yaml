@@ -1,8 +1,7 @@
 name: "OLX Vehicle Monitor"
 version: "1.0.0"
 slug: olx-vehicle-monitor
-description: "Monitora novos anúncios de veículos na OLX (MG) e envia notificações via ntfy.sh"
-url: "https://github.com/YOUR_USERNAME/olx-vehicle-monitor"
+description: "Monitora novos anuncios de veiculos na OLX (MG) e envia notificacoes via ntfy.sh"
 arch:
   - amd64
   - armv7
