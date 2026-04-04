@@ -28,7 +28,15 @@ def fetch_olx_listings(url):
     try:
         with sync_playwright() as p:
             logger.info("Starting Playwright browser...")
-            browser = p.chromium.launch(headless=True)
+            # Use executable_path if defined in environment, otherwise default
+            import os
+            executable_path = os.environ.get('PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH')
+            
+            browser = p.chromium.launch(
+                headless=True,
+                executable_path=executable_path,
+                args=['--no-sandbox', '--disable-setuid-sandbox']
+            )
             
             context = browser.new_context(
                 user_agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',

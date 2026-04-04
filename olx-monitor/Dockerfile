@@ -1,28 +1,33 @@
-ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.20
+ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-base-python:3.12-alpine3.20
 FROM ${BUILD_FROM}
 
-# Install Python 3 and dependencies
+# Set shell
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# Install system dependencies for Playwright/Chromium
 RUN apk add --no-cache \
-    python3 \
-    py3-pip \
-    py3-requests \
     chromium \
-    chromium-chromedriver
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    libstdc++
 
 # Set working directory
 WORKDIR /app
 
-# Copy Python requirements and install
+# Install Python requirements
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers
-RUN playwright install chromium --with-deps
-
 # Copy application files
-COPY app/ ./app/
-COPY run.sh .
+COPY . .
 RUN chmod +x run.sh
+
+# Environment variables for Playwright to use system Chromium
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Run the application
 CMD ["/app/run.sh"]
