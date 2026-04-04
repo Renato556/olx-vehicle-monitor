@@ -9,9 +9,9 @@ import time
 
 logger = logging.getLogger(__name__)
 
-# Maximum listings per message to avoid creating attachment files
-# ntfy.sh creates attachments when message is too large
-MAX_LISTINGS_PER_MESSAGE = 10
+# ntfy.sh has a 4096 byte limit for messages
+# Keep messages under 3800 bytes for safety margin
+MAX_MESSAGE_BYTES = 3800
 
 
 def remove_accents(text):
@@ -32,82 +32,30 @@ def remove_accents(text):
     return ''.join(char for char in nfd if unicodedata.category(char) != 'Mn')
 
 
-def send_single_message(listings_batch, batch_num, total_batches, total_listings, topic):
+def format_listing(i, listing):
     """
-    Send a single notification message
-    
-    Args:
-        listings_batch: List of listings for this batch
-        batch_num: Current batch number (1-indexed)
-        total_batches: Total number of batches
-        total_listings: Total number of listings across all batches
-        topic: ntfy.sh topic name
-    
-    Raises:
-        Exception: If notification fails to send
+    Format a single listing into a string block
     """
-    # Format message with listings using Markdown format
-    message_lines = []
+    # Create hyperlink using Markdown format: [text](url)
+    title_link = f"[{listing['title']}]({listing['url']})"
     
-    # Header with batch info if multiple batches
-    if total_batches > 1:
-        message_lines.append(
-            f"Novos Anuncios OLX - Parte {batch_num}/{total_batches} ({total_listings} total)"
-        )
-    else:
-        message_lines.append(
-            f"Novos Anuncios OLX - {total_listings} veiculo{'s' if total_listings != 1 else ''}"
-        )
+    lines = []
+    lines.append(f"{i}. {title_link}")
+    lines.append(f"   {listing['price']}")
     
-    message_lines.append("")
+    # Add location if available
+    if listing.get('location'):
+        location_no_accents = remove_accents(listing['location'])
+        lines.append(f"   {location_no_accents}")
     
-    # Calculate starting index for this batch
-    start_idx = (batch_num - 1) * MAX_LISTINGS_PER_MESSAGE + 1
-    
-    for i, listing in enumerate(listings_batch, start=start_idx):
-        # Create hyperlink using Markdown format: [text](url)
-        title_link = f"[{listing['title']}]({listing['url']})"
-        
-        message_lines.append(f"{i}. {title_link}")
-        message_lines.append(f"   {listing['price']}")
-        
-        # Add location if available
-        if listing.get('location'):
-            location_no_accents = remove_accents(listing['location'])
-            message_lines.append(f"   {location_no_accents}")
-        
-        message_lines.append("")  # Blank line between listings
-    
-    message = "\n".join(message_lines)
-    
-    # Send to ntfy.sh
-    ntfy_url = f"https://ntfy.sh/{topic}"
-    
-    # Title varies based on batch
-    if total_batches > 1:
-        title = f"Novos Veiculos OLX ({batch_num}/{total_batches})"
-    else:
-        title = "Novos Veiculos OLX"
-    
-    response = requests.post(
-        ntfy_url,
-        data=message.encode('utf-8'),
-        headers={
-            "Title": title,
-            "Tags": "car,olx",
-            "Priority": "default",
-            "Markdown": "yes"  # Enable Markdown formatting
-        },
-        timeout=30
-    )
-    
-    response.raise_for_status()
+    lines.append("")  # Blank line between listings
+    return "\n".join(lines)
 
 
 def send_notification(listings, topic):
     """
     Send notification of new listings to ntfy.sh
-    Splits into multiple messages if needed to avoid attachment files
+    Splits into multiple messages based on byte size to avoid attachment files
     
     Args:
         listings: List of listing dicts with keys: id, title, price, url, location
@@ -121,32 +69,67 @@ def send_notification(listings, topic):
         return
     
     total_listings = len(listings)
+    batches = []
+    current_batch = []
+    current_batch_size = 0
     
-    # Calculate number of batches needed
-    total_batches = (total_listings + MAX_LISTINGS_PER_MESSAGE - 1) // MAX_LISTINGS_PER_MESSAGE
+    # Header templates
+    header_template = "Novos Anuncios OLX - {info}\n\n"
     
-    logger.info(
-        f"Sending {total_listings} listings in {total_batches} message(s) to {topic}"
-    )
+    for i, listing in enumerate(listings, 1):
+        listing_text = format_listing(i, listing)
+        listing_size = len(listing_text.encode('utf-8'))
+        
+        # If adding this listing exceeds the limit, start a new batch
+        # We account for the header size roughly here
+        if current_batch_size + listing_size > MAX_MESSAGE_BYTES - 200:
+            if current_batch:
+                batches.append(current_batch)
+                current_batch = []
+                current_batch_size = 0
+        
+        current_batch.append(listing_text)
+        current_batch_size += listing_size
+    
+    if current_batch:
+        batches.append(current_batch)
+    
+    total_batches = len(batches)
+    logger.info(f"Sending {total_listings} listings in {total_batches} message(s) to {topic}")
     
     try:
-        # Split listings into batches and send
-        for batch_num in range(1, total_batches + 1):
-            start_idx = (batch_num - 1) * MAX_LISTINGS_PER_MESSAGE
-            end_idx = min(start_idx + MAX_LISTINGS_PER_MESSAGE, total_listings)
+        for batch_num, batch_content in enumerate(batches, 1):
+            if total_batches > 1:
+                header = f"Novos Anuncios OLX - Parte {batch_num}/{total_batches} ({total_listings} total)\n\n"
+                title = f"Novos Veiculos OLX ({batch_num}/{total_batches})"
+            else:
+                header = f"Novos Anuncios OLX - {total_listings} veiculo{'s' if total_listings != 1 else ''}\n\n"
+                title = "Novos Veiculos OLX"
             
-            batch = listings[start_idx:end_idx]
+            message = header + "".join(batch_content)
             
-            logger.info(
-                f"Sending batch {batch_num}/{total_batches} ({len(batch)} listings)"
+            # Send to ntfy.sh
+            ntfy_url = f"https://ntfy.sh/{topic}"
+            
+            logger.info(f"Sending batch {batch_num}/{total_batches} ({len(message.encode('utf-8'))} bytes)")
+            
+            response = requests.post(
+                ntfy_url,
+                data=message.encode('utf-8'),
+                headers={
+                    "Title": title,
+                    "Tags": "car,olx",
+                    "Priority": "default",
+                    "Markdown": "yes"
+                },
+                timeout=30
             )
+            response.raise_for_status()
             
-            send_single_message(batch, batch_num, total_batches, total_listings, topic)
-            
-            # Small delay between messages to avoid rate limiting
+            # Delay to avoid rate limiting or ordering issues
             if batch_num < total_batches:
-                time.sleep(1)
-        
+                time.sleep(1.5)
+                
         logger.info(f"All {total_batches} notification(s) sent successfully")
         
     except requests.exceptions.RequestException as e:
