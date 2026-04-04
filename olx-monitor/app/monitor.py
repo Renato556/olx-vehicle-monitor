@@ -15,7 +15,7 @@ from notifier import send_notification
 
 # Configuration (hardcoded as per requirements)
 OLX_URL = "https://www.olx.com.br/autos-e-pecas/carros-vans-e-utilitarios/estado-mg?ps=19000&pe=26000&sf=1&gb=1&gb=2&ics=1&ics=2&ics=5&hgnv=0&cf=1&fncs=1"
-NTFY_TOPIC = "carros-mg-olx"
+NTFY_TOPIC = "carros-olx-mg"
 CHECK_INTERVAL = 1800  # 30 minutes in seconds
 
 # Setup logging
