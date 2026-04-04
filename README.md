@@ -73,8 +73,9 @@ Para receber as notificações no seu dispositivo:
 
 ### Formato das Notificações
 
-As notificações usam Markdown com hyperlinks clicáveis e texto sem acentos:
+As notificações usam Markdown com hyperlinks clicáveis e texto sem acentos.
 
+**Para poucos anúncios (até 10):**
 ```
 Novos Anuncios OLX - 3 veiculos
 
@@ -91,9 +92,34 @@ Novos Anuncios OLX - 3 veiculos
    Betim - DDD 31
 ```
 
+**Para muitos anúncios (mais de 10):**
+As mensagens são divididas automaticamente para evitar anexos:
+
+```
+Novos Anuncios OLX - Parte 1/3 (25 total)
+
+1. [Fiat Uno Vivace 1.0 2015](https://mg.olx.com.br/...)
+   R$ 25.000
+   Belo Horizonte - DDD 31
+
+... (10 anúncios nesta mensagem)
+```
+
+```
+Novos Anuncios OLX - Parte 2/3 (25 total)
+
+11. [Chevrolet Onix 1.0 2020](https://mg.olx.com.br/...)
+    R$ 24.800
+    Betim - DDD 31
+
+... (10 anúncios nesta mensagem)
+```
+
 **Observações:**
-- Os títulos são links clicáveis (formato Markdown)
+- Títulos são links clicáveis (formato Markdown)
 - Texto sem acentos para melhor compatibilidade
+- Máximo de 10 anúncios por mensagem
+- Mensagens divididas automaticamente quando necessário
 - Clique no título para abrir o anúncio diretamente
 
 ## Configuração
