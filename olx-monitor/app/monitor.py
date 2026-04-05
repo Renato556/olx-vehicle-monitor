@@ -14,7 +14,10 @@ from storage import load_seen_ids, save_seen_ids
 from notifier import send_notification
 
 # Configuration (hardcoded as per requirements)
-OLX_URL = "https://www.olx.com.br/autos-e-pecas/carros-vans-e-utilitarios/estado-mg?ps=19000&pe=26000&sf=1&f=p&gb=1&gb=2&ics=1&ics=2&ics=5&hgnv=0&cf=1&fncs=1"
+OLX_URLS = [
+    "https://www.olx.com.br/autos-e-pecas/carros-vans-e-utilitarios/estado-mg/belo-horizonte-e-regiao?ps=19000&pe=26000&sf=1&f=p&gb=1&gb=2&ics=1&ics=2&ics=5&hgnv=0&cf=1&fncs=1",
+    "https://www.olx.com.br/autos-e-pecas/carros-vans-e-utilitarios/estado-mg/regiao-de-juiz-de-fora?ps=19000&pe=26000&sf=1&f=p&gb=1&gb=2&ics=1&ics=2&ics=5&hgnv=0&cf=1&fncs=1"
+]
 NTFY_TOPIC = "carros-olx-mg"
 CHECK_INTERVAL = 600  # 10 minutes in seconds
 
@@ -38,7 +41,7 @@ def main():
     logger.info("=" * 80)
     logger.info("OLX Vehicle Monitor Starting")
     logger.info("=" * 80)
-    logger.info(f"OLX URL: {OLX_URL[:80]}...")
+    logger.info(f"Monitoring {len(OLX_URLS)} URLs")
     logger.info(f"ntfy.sh topic: {NTFY_TOPIC}")
     logger.info(f"Check interval: {CHECK_INTERVAL} seconds ({CHECK_INTERVAL/60:.0f} minutes)")
     logger.info("=" * 80)
@@ -48,10 +51,26 @@ def main():
             check_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             logger.info(f"\n--- Check started at {check_time} ---")
             
-            # Fetch current listings from OLX
+            # Fetch current listings from all OLX URLs
             logger.info("Fetching listings from OLX...")
-            listings = fetch_olx_listings(OLX_URL)
-            logger.info(f"Fetched {len(listings)} total listings")
+            all_fetched_listings = []
+            for url in OLX_URLS:
+                try:
+                    listings = fetch_olx_listings(url)
+                    all_fetched_listings.extend(listings)
+                    # Small delay between requests to be polite
+                    if len(OLX_URLS) > 1:
+                        time.sleep(2)
+                except Exception as e:
+                    logger.error(f"Error fetching from {url[:50]}...: {e}")
+            
+            # Deduplicate listings by ID (in case a car appears in multiple search regions)
+            unique_listings = {}
+            for l in all_fetched_listings:
+                unique_listings[l['id']] = l
+            
+            listings = list(unique_listings.values())
+            logger.info(f"Fetched {len(listings)} unique listings total")
             
             # Load previously seen listing IDs
             seen_ids = load_seen_ids()
