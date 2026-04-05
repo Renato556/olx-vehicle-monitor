@@ -63,7 +63,14 @@ def format_listing(i, listing):
     # Format Price - Mileage line
     price_mileage = listing['price']
     if listing.get('mileage'):
-        price_mileage += f" - {listing['mileage']} km"
+        try:
+            # Try to format mileage with dots for thousands separator
+            mileage_val = int(listing['mileage'])
+            formatted_mileage = f"{mileage_val:,}".replace(",", ".")
+            price_mileage += f" - {formatted_mileage} km"
+        except (ValueError, TypeError):
+            # Fallback to raw value if not a valid number
+            price_mileage += f" - {listing['mileage']} km"
     
     lines.append(f"   {price_mileage}")
     
