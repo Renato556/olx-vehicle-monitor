@@ -60,10 +60,19 @@ def fetch_olx_listings(url):
                 
                 listings = []
                 for ad in listings_data:
+                    # Extract mileage from properties if available
+                    mileage = ""
+                    properties = ad.get('properties', [])
+                    for prop in properties:
+                        if prop.get('name') == 'mileage':
+                            mileage = prop.get('value', '')
+                            break
+                    
                     listing = {
                         'id': str(ad.get('listId', '')),
                         'title': ad.get('title', ad.get('subject', '')),
                         'price': ad.get('price', ''),
+                        'mileage': mileage,
                         'url': ad.get('url', ''),
                         'location': ad.get('location', '')
                     }

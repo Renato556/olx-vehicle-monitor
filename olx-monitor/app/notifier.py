@@ -59,7 +59,13 @@ def format_listing(i, listing):
     
     lines = []
     lines.append(f"{i}. {title_link}")
-    lines.append(f"   {listing['price']}")
+    
+    # Format Price - Mileage line
+    price_mileage = listing['price']
+    if listing.get('mileage'):
+        price_mileage += f" - {listing['mileage']} km"
+    
+    lines.append(f"   {price_mileage}")
     
     # Add location if available
     if listing.get('location'):
