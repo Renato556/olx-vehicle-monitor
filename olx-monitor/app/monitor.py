@@ -14,9 +14,12 @@ from storage import load_seen_ids, save_seen_ids
 from notifier import send_notification
 
 # Configuration (hardcoded as per requirements)
-OLX_URL = "https://www.olx.com.br/autos-e-pecas/carros-vans-e-utilitarios/estado-mg?ps=19000&pe=26000&sf=1&gb=1&gb=2&ics=1&ics=2&ics=5&hgnv=0&cf=1&fncs=1"
+OLX_URL = "https://www.olx.com.br/autos-e-pecas/carros-vans-e-utilitarios/estado-mg?ps=19000&pe=26000&sf=1&f=p&gb=1&gb=2&ics=1&ics=2&ics=5&hgnv=0&cf=1&fncs=1"
 NTFY_TOPIC = "carros-olx-mg"
 CHECK_INTERVAL = 600  # 10 minutes in seconds
+
+# Keywords to ignore (case insensitive)
+IGNORED_BRANDS = ["peugeot", "citroen", "citroën"]
 
 # Setup logging
 logging.basicConfig(
@@ -56,6 +59,17 @@ def main():
             
             # Filter to only new listings
             new_listings = [l for l in listings if l['id'] not in seen_ids]
+            
+            # Filter out ignored brands
+            if new_listings:
+                original_count = len(new_listings)
+                new_listings = [
+                    l for l in new_listings 
+                    if not any(brand in l['title'].lower() for brand in IGNORED_BRANDS)
+                ]
+                filtered_count = original_count - len(new_listings)
+                if filtered_count > 0:
+                    logger.info(f"Filtered out {filtered_count} listings from ignored brands.")
             
             if new_listings:
                 logger.info(f"Found {len(new_listings)} NEW listings!")
